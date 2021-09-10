@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}
+  {{group.title}}
+{% endblock %} 
+
+{% block content %}
+  <h1><p>{{ group.description }}</p></h1>
+    <p><h1>{{ group.title }}</h1></p>
+{% for post in page_obj %}
+  <ul>
+    <li>
+      Автор: {{ post.author.get_full_name }}
+    </li>
+    <li>
+      Дата публикации: {{ post.pub_date|date:"d E Y" }}
+    </li>
+  </ul>
+  <p>{{ post.text }}</p>
+  <a href="{% url 'posts:post_detail' post.pk %}"> подробная информация</a> <br>   
+  {% if not forloop.last %}<hr>{% endif %}
+{% endfor %} 
+{% include 'includes/paginator_groups.html' %}
+{% endblock %} 
