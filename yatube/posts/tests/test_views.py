@@ -18,7 +18,7 @@ class PostsPagesTests(TestCase):
         )
         cls.user = User.objects.create_user(username='V.Pupkin')
         cls.group = get_object_or_404(Group, slug='test-slug')
-        Post.objects.create(
+        cls.post = Post.objects.create(
             author=cls.user,
             pk=999,
             group=cls.group,
@@ -26,7 +26,6 @@ class PostsPagesTests(TestCase):
         )
 
     def setUp(self):
-        # Создаем авторизованный клиент
         self.user_author = get_object_or_404(User, username='V.Pupkin')
         self.author = Client()
         self.author.force_login(self.user_author)
@@ -59,6 +58,17 @@ class PostsPagesTests(TestCase):
                 response = self.author.get(reverse_name)
                 self.assertTemplateUsed(response, template)
 
+    def post_check_fields(self, post):
+        post_expected = PostsPagesTests.post
+        self.post_author_0 = post.author.username
+        self.post_text_0 = post.text
+        self.post_group_0 = post.group.title
+        self.post_date_0 = post.pub_date
+        self.assertEqual(self.post_author_0, post_expected.author.username)
+        self.assertEqual(self.post_text_0, post_expected.text)
+        self.assertEqual(self.post_group_0, post_expected.group.title)
+        self.assertIsNotNone(self.post_date_0)
+
     def test_post_lists_context(self):
         """Шаблоны index, group_list, profile
          сформированы с правильным контекстом."""
@@ -67,19 +77,11 @@ class PostsPagesTests(TestCase):
             'posts:group_list': {'slug': 'test-slug'},
             'posts:profile': {'username': 'V.Pupkin'},
         }
-
         for url, kwargs in arguments.items():
             with self.subTest(url=url, kwargs=kwargs):
                 response = self.author.get(reverse(url, kwargs=kwargs))
                 first_object = response.context.get('page_obj')[0]
-                task_author_0 = first_object.author.username
-                task_text_0 = first_object.text
-                task_group_0 = first_object.group.title
-                task_date_0 = first_object.pub_date
-                self.assertEqual(task_author_0, 'V.Pupkin')
-                self.assertEqual(task_text_0, 'test_text')
-                self.assertEqual(task_group_0, 'Заголовок')
-                self.assertIsNotNone(task_date_0)
+                self.post_check_fields(first_object)
 
     def test_post_detail_context(self):
         """ Правильный контекст переданный в post_detail"""
@@ -87,14 +89,7 @@ class PostsPagesTests(TestCase):
             'posts:post_detail', kwargs={'post_id': '999'}
         ))
         first_object = response.context.get('post')
-        task_author_0 = first_object.author.username
-        task_text_0 = first_object.text
-        task_group_0 = first_object.group.title
-        task_date_0 = first_object.pub_date
-        self.assertEqual(task_author_0, 'V.Pupkin')
-        self.assertEqual(task_text_0, 'test_text')
-        self.assertEqual(task_group_0, 'Заголовок')
-        self.assertIsNotNone(task_date_0)
+        self.post_check_fields(first_object)
 
     def test_post_create_context(self):
         """ Форма создания поста передана в контекст."""
@@ -110,7 +105,8 @@ class PostsPagesTests(TestCase):
 
     def test_post_edit_context(self):
         """ В шаблон редактирования поста передан правильный контекст."""
-        response = self.author.get(reverse('posts:post_edit', args=[999]))
+        postd_id = PostsPagesTests.post.pk
+        response = self.author.get(reverse('posts:post_edit', args=[postd_id]))
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
